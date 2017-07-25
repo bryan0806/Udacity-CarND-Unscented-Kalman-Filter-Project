@@ -77,7 +77,9 @@ UKF::UKF() {
 
   // predicted sigma points matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
-
+    
+    //create vector for weights
+    weights_ = VectorXd(2*n_aug_+1);
 }
 
 UKF::~UKF() {}
@@ -98,7 +100,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
 
 
-      if (meas_package.sensor_type_ = MeasurementPackage::RADAR) {
+      if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
         /**
         Convert radar from polar to cartesian coordinates and initialize state.
         */
@@ -248,6 +250,31 @@ void UKF::Prediction(double delta_t) {
       }
 
 
+    //*** Start to Predict Mean and Convariance
+    //set weights
+    weights_(0) = lambda_/(lambda_+n_aug_);
+    for(int i=1;i<2*n_aug_+1;i++){
+        double weight = 0.5/(lambda_+n_aug_);
+        weights_(i)= weight;
+    }
+    //std::cout << "pass" << std::endl;
+    //predict state mean
+    for(int i=0;i<2*n_aug_+1;i++){
+        x_ += weights_(i)*Xsig_pred_.col(i);
+    }
+    
+    //std::cout << x_ << std::endl;
+    
+    //predict state covariance matrix
+    for(int i=0;i<2*n_aug_+1;i++){
+        VectorXd diff = Xsig_pred_.col(i)-x_;
+        //angle normalization
+        while (diff(3)> M_PI) diff(3)-=2.*M_PI;
+        while (diff(3)<-M_PI) diff(3)+=2.*M_PI;
+        
+        P_ += weights_(i)*diff*diff.transpose();
+        
+    }
 
 
 }
