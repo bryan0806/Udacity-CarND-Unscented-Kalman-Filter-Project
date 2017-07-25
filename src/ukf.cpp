@@ -75,6 +75,9 @@ UKF::UKF() {
   // time when the state is true, in us
   time_us_ = 0; // work as previous_timestamp
 
+  // predicted sigma points matrix
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+
 }
 
 UKF::~UKF() {}
@@ -129,7 +132,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     float dt = (meas_package.timestamp_ - time_us_) / 1000000.0;	//dt - expressed in seconds
     time_us_ = meas_package.timestamp_;
 
-
+    Prediction(dt);
 
 
 
@@ -147,6 +150,106 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+    /* It seems no need to get normal sigma points only use augmentation
+    //create sigma point matrix
+    MatrixXd Xsig = MatrixXd(n_x_, 2 * n_x_ + 1);
+
+    //calculate square root of P
+    MatrixXd A = P_.llt().matrixL();
+
+    //set first column of sigma point matrix
+     Xsig.col(0)  = x_;
+
+     //set remaining sigma points
+     for (int i = 0; i < n_x_; i++)
+     {
+       Xsig.col(i+1)     = x + sqrt(lambda_+n_x_) * A.col(i);
+       Xsig.col(i+1+n_x) = x - sqrt(lambda_+n_x_) * A.col(i);
+     }*/
+
+    //** Start generate augmented sigma points
+    //create augmented mean vector
+    VectorXd x_aug = VectorXd(n_aug_);
+
+    //create augmented state covariance
+    MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
+
+    //create sigma point matrix
+    MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+
+    //create augmented mean state
+    x_aug.head(5) = x_;
+    x_aug(5) = 0;
+    x_aug(6) = 0;
+
+    //create augmented covariance matrix
+    P_aug.fill(0.0);
+    P_aug.topLeftCorner(5,5) = P_;
+    P_aug(5,5) = std_a_*std_a_;
+    P_aug(6,6) = std_yawdd_*std_yawdd_;
+
+    //create square root matrix
+    MatrixXd L = P_aug.llt().matrixL();
+
+    //create augmented sigma points
+    Xsig_aug.col(0)  = x_aug;
+    for (int i = 0; i< n_aug_; i++)
+    {
+      Xsig_aug.col(i+1)       = x_aug + sqrt(lambda_+n_aug_) * L.col(i);
+      Xsig_aug.col(i+1+n_aug_) = x_aug - sqrt(lambda_+n_aug_) * L.col(i);
+    }
+
+    //** Start to predict sigma points
+    //predict sigma points
+      //avoid division by zero
+      //write predicted sigma points into right column
+      for(int i=0;i<2*n_aug_+1;i++){
+          double px = Xsig_aug(0,i);
+          double py = Xsig_aug(1,i);
+          double v = Xsig_aug(2,i);
+          double yaw = Xsig_aug(3,i);
+          double yawd = Xsig_aug(4,i);
+          double nu_a = Xsig_aug(5,i);
+          double nu_yawdd = Xsig_aug(6,i);
+
+          //predicted x state
+          double px_p;
+          double py_p;
+
+          // check yawd is zero or not
+          if(fabs(yawd)<0.01){ //yawd is zero
+              px_p = px + (v*cos(yaw)*delta_t);
+              py_p = py + (v*sin(yaw)*delta_t);
+          }else{ // yawd is not zero
+              px_p = px + v*(sin(yaw+yawd*delta_t)-sin(yaw))/yawd;
+              py_p = py + v*(-cos(yaw+yawd*delta_t)+cos(yaw))/yawd;
+          }
+
+          //adding noise effect to predicted state
+          px_p += 0.5*delta_t*delta_t*cos(yaw)*nu_a;
+          py_p += 0.5*delta_t*delta_t*sin(yaw)*nu_a;
+
+          // v state predict
+          double v_p ;
+          v_p = v +delta_t*nu_a;
+
+          // predict yaw and yawd
+          double yaw_p,yawd_p;
+          yaw_p = yaw + yawd*delta_t + (0.5*delta_t*delta_t*nu_yawdd);
+          yawd_p = yawd + delta_t*nu_yawdd;
+
+          // put back
+          Xsig_pred_(0,i)=px_p;
+          Xsig_pred_(1,i)=py_p;
+          Xsig_pred_(2,i)=v_p;
+          Xsig_pred_(3,i)=yaw_p;
+          Xsig_pred_(4,i)=yawd_p;
+
+      }
+
+
+
+
 }
 
 /**
