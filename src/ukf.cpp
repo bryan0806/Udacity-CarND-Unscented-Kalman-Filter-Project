@@ -51,6 +51,30 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  // State dimension
+  n_x_ = 5;
+
+  // Augmented state dimension
+  n_aug_ = 7;
+
+  // Sigma point spreading parameter
+  lambda_ = 3-n_x_;
+
+  is_initialized_ = false;
+
+  // initial state covariance matrix
+  P_<< 1,0,0,0,0,
+       0,1,0,0,0,
+       0,0,1,0,0,
+       0,0,0,1,0,
+       0,0,0,0,1;
+  //initial state value
+  x_ << 0,0,0,0,0;
+
+  // time when the state is true, in us
+  time_us_ = 0; // work as previous_timestamp
+
 }
 
 UKF::~UKF() {}
@@ -66,6 +90,43 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+    if (!is_initialized_) {
+
+
+
+      if (meas_package.sensor_type_ = MeasurementPackage::RADAR) {
+        /**
+        Convert radar from polar to cartesian coordinates and initialize state.
+        */
+        float ro = meas_package.raw_measurements_[0];
+        float theta = meas_package.raw_measurements_[1];
+        float ro_dot = meas_package.raw_measurements_[2];
+
+        x_ << ro*cos(theta),ro*sin(theta),0,0,0;
+        time_us_ = meas_package.timestamp_;
+      }
+      else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+        /**
+        Initialize state.
+        */
+        x_ << meas_package.raw_measurements_[0],meas_package.raw_measurements_[1],0,0,0;
+        time_us_ = meas_package.timestamp_;
+
+      }
+
+
+
+
+
+      // done initializing, no need to predict or update
+      is_initialized_ = true;
+      return;
+    }
+
+
+
+
+
 }
 
 /**
