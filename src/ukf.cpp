@@ -90,6 +90,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+    // Initialization and use first measurement to set up px and py
     if (!is_initialized_) {
 
 
@@ -122,6 +123,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       is_initialized_ = true;
       return;
     }
+
+
+    //compute the time elapsed between the current and previous measurements
+    float dt = (meas_package.timestamp_ - time_us_) / 1000000.0;	//dt - expressed in seconds
+    time_us_ = meas_package.timestamp_;
 
 
 
