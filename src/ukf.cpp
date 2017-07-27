@@ -266,12 +266,7 @@ void UKF::Prediction(double delta_t) {
 
 
     //*** Start to Predict Mean and Convariance
-    //set weights
-    weights_(0) = lambda_/(lambda_+n_aug_);
-    for(int i=1;i<2*n_aug_+1;i++){
-        double weight = 0.5/(lambda_+n_aug_);
-        weights_(i)= weight;
-    }
+
     //std::cout << "pass" << std::endl;
     //predict state mean
     x_.fill(0.0);
@@ -349,11 +344,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
       //add measurement noise covariance matrix
       MatrixXd R = MatrixXd(n_z,n_z);
-      // Laser measurement noise standard deviation position1 in m
-      std_laspx_ = 0.15;
 
-      // Laser measurement noise standard deviation position2 in m
-      std_laspy_ = 0.15;
       R <<    std_laspx_*std_laspx_, 0,
               0, std_laspy_*std_laspy_;
 
